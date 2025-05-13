@@ -1,0 +1,1 @@
+This is a work-in-progress Python script for translating custom XML using DeepL API
