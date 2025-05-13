@@ -1,21 +1,35 @@
 import deepl
 import xml.etree.ElementTree as ET
+import os
 
-def translate_xml_file(input_file, output_file, source_lang="EN", target_lang="RU"):
-    # Read API key
+source_lang="EN"
+target_lang="DE"
+
+def get_files_in_directory():
+    directory = os.fsencode("source")
+    for file in os.listdir(directory):
+        filename = os.fsdecode(file)
+        if filename.endswith(".xml"):
+            input_file = os.path.join("source", filename)
+            output_file = os.path.join("target", f"{filename}_{target_lang}.xml")
+            translate_xml_file(input_file, output_file)
+    
+
+def translate_xml_file(input_file, output_file):
+    # key is API key in a separate file
     with open("key", "r") as f:
         auth_key = f.read().strip()
     
     translator = deepl.Translator(auth_key)
     
-    # Read the XML file as text
+    # Open XML file
     with open(input_file, "r", encoding="utf-8") as f:
         xml_content = f.read()
     
-    # Tags to ignore (not translate)
+    # Tags to ignore
     ignore_tags = ["imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
     
-    # Translate the entire XML content at once
+    # Translate the entire XML content
     result = translator.translate_text(
         xml_content,
         source_lang=source_lang,
@@ -31,4 +45,4 @@ def translate_xml_file(input_file, output_file, source_lang="EN", target_lang="R
     print(f"Translation completed: {input_file} → {output_file}")
 
 if __name__ == "__main__":
-    translate_xml_file("source/input.xml", "translated.xml")
+    get_files_in_directory()
