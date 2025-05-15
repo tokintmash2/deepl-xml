@@ -1,37 +1,39 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
 
-type data struct {
-	Text        string `json:"text"`
-	TagHandling string `json:"tag_handling"`
+type SaveData struct {
+	Translations []struct {
+		DetectedSourceLanguage string `json:"detected_source_language"`
+		Text                   string `json:"text"`
+	} `json:"translations"`
 }
 
 func main() {
 
-	textToTranslate := strings.NewReader(`text=hello&tag_handling=xml&target_lang=ET`)
+	keyFilePath := "key"
+	xmlFilePath := "test.xml"
 
-	keyFile, err := os.Open("key")
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-	// fmt.Println("API Key:", keyFile)
-	defer keyFile.Close()
+	APIkey := readFile(keyFilePath)
+	xmlBytes := readFile(xmlFilePath)
 
-	APIkey, err := io.ReadAll(keyFile)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
+	xmlContent := string(xmlBytes) // read from file
+	form := fmt.Sprintf("text=%s&tag_handling=xml&target_lang=ET", url.QueryEscape(xmlContent))
+	reader := strings.NewReader(form)
+
 	// fmt.Println("API Key:", string(APIkey))
 
 	url := "https://api-free.deepl.com/v2/translate"
-	req, err := http.NewRequest("POST", url, textToTranslate)
+	req, err := http.NewRequest("POST", url, reader)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
@@ -50,5 +52,50 @@ func main() {
 	if readErr != nil {
 		fmt.Print(err.Error())
 	}
-	fmt.Println(string(body))
+
+	var result SaveData
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	writeXMLFile("translated.xml", result.Translations[0].Text)
+	fmt.Println(result.Translations[0].Text)
+}
+
+func writeXMLFile(filePath string, data string) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	_, err = w.WriteString(data)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	w.Flush()
+}
+
+func readFile(filePath string) []byte {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return nil
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil
+	}
+
+	return data
 }
