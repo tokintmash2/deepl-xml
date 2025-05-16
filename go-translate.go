@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -22,15 +23,25 @@ func main() {
 
 	keyFilePath := "key"
 	xmlFilePath := "test.xml"
+	sourcePath := "source"
 
 	APIkey := readFile(keyFilePath)
+
+	entries, err := os.ReadDir(sourcePath)
+	if err != nil {
+		fmt.Println("Error reading directory:", err)
+		return
+	}
+	for _, entry := range entries {
+		fmt.Println(entry.Name())
+		fmt.Println(filepath.Join(sourcePath, entry.Name()))
+	}
+		
 	xmlBytes := readFile(xmlFilePath)
 
 	xmlContent := string(xmlBytes) // read from file
 	form := fmt.Sprintf("text=%s&tag_handling=xml&target_lang=ET", url.QueryEscape(xmlContent))
 	reader := strings.NewReader(form)
-
-	// fmt.Println("API Key:", string(APIkey))
 
 	url := "https://api-free.deepl.com/v2/translate"
 	req, err := http.NewRequest("POST", url, reader)
@@ -73,14 +84,14 @@ func writeXMLFile(filePath string, data string) {
 	}
 	defer file.Close()
 
-	w := bufio.NewWriter(file)
-	_, err = w.WriteString(data)
+	writer := bufio.NewWriter(file)
+	_, err = writer.WriteString(data)
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
 		return
 	}
 
-	w.Flush()
+	writer.Flush()
 }
 
 func readFile(filePath string) []byte {
