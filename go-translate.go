@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type SaveData struct {
@@ -22,10 +23,12 @@ type SaveData struct {
 func main() {
 
 	keyFilePath := "key"
-	xmlFilePath := "test.xml"
+	// xmlFilePath := "test.xml"
 	sourcePath := "source"
 
 	APIkey := readFile(keyFilePath)
+
+	var waitGroup sync.WaitGroup
 
 	entries, err := os.ReadDir(sourcePath)
 	if err != nil {
@@ -33,47 +36,69 @@ func main() {
 		return
 	}
 	for _, entry := range entries {
-		fmt.Println(entry.Name())
-		fmt.Println(filepath.Join(sourcePath, entry.Name()))
-	}
+		// fmt.Println(entry.Name())
+		// fmt.Println(filepath.Join(sourcePath, entry.Name()))
 		
-	xmlBytes := readFile(xmlFilePath)
+		waitGroup.Add(1)
+		
+		go func() {
+			defer waitGroup.Done()
 
-	xmlContent := string(xmlBytes) // read from file
-	form := fmt.Sprintf("text=%s&tag_handling=xml&target_lang=ET", url.QueryEscape(xmlContent))
-	reader := strings.NewReader(form)
+			fmt.Println("Routine started for file:", entry.Name())
 
-	url := "https://api-free.deepl.com/v2/translate"
-	req, err := http.NewRequest("POST", url, reader)
-	if err != nil {
-		fmt.Println("Error:", err)
+			xmlFilePath := filepath.Join(sourcePath, entry.Name())
+			
+			fmt.Println("XML path: ", xmlFilePath)
+			
+			xmlBytes := readFile(xmlFilePath)
+
+			xmlContent := string(xmlBytes) // read from file
+			form := fmt.Sprintf("text=%s&tag_handling=xml&target_lang=ET", url.QueryEscape(xmlContent))
+			reader := strings.NewReader(form)
+
+			url := "https://api-free.deepl.com/v2/translate"
+			req, err := http.NewRequest("POST", url, reader)
+			if err != nil {
+				fmt.Println("Error making request:", err)
+			}
+
+			req.Header.Add("Authorization", "DeepL-Auth-Key "+string(APIkey))
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				fmt.Println("Error getting respoonse:", err)
+			}
+
+			defer res.Body.Close()
+
+			body, readErr := io.ReadAll(res.Body)
+			if readErr != nil {
+				fmt.Println("Error reading response body:", readErr)
+				fmt.Print(err.Error())
+			}
+
+			var result SaveData
+
+			err = json.Unmarshal(body, &result)
+			if err != nil {
+				fmt.Println("Error unmarshalling:", err)
+				return
+			}
+
+			fmt.Println("Result: ", result)
+
+			fmt.Println(result.Translations[0].Text)
+			writeXMLFile("translated.xml", result.Translations[0].Text)
+		}()
+
+		waitGroup.Wait()
+
 	}
 
-	req.Header.Add("Authorization", "DeepL-Auth-Key "+string(APIkey))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	// xmlBytes := readFile(xmlFilePath)
 
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	defer res.Body.Close()
-
-	body, readErr := io.ReadAll(res.Body)
-	if readErr != nil {
-		fmt.Print(err.Error())
-	}
-
-	var result SaveData
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	writeXMLFile("translated.xml", result.Translations[0].Text)
-	fmt.Println(result.Translations[0].Text)
+	
 }
 
 func writeXMLFile(filePath string, data string) {
