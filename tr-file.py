@@ -2,7 +2,7 @@ import deepl
 import xml.etree.ElementTree as ET
 import os
 
-source_lang="EN"
+source_lang=""
 target_lang="DE"
 
 def get_files_in_directory():
@@ -28,6 +28,7 @@ def translate_xml_file(input_file, output_file):
     
     # Tags to ignore
     ignore_tags = ["imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
+    # ignore_tags = ["imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
     
     # Translate the entire XML content
     result = translator.translate_text(
