@@ -27,7 +27,7 @@ def translate_xml_file(input_file, output_file):
         xml_content = f.read()
     
     # Tags to ignore
-    ignore_tags = ["TranslationLock", "imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
+    ignore_tags = ["imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
     # ignore_tags = ["imageobject", "imagedata", "indexterm", "tag", "primary", "secondary"]
     
     # Translate the entire XML content
