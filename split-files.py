@@ -17,17 +17,18 @@ def split_by_level_2(input_file, max_level2_per_chunk=1):
     chunk_files = []
 
     for i in range(total_chunks):
-        chunk_root = ET.Element(root.tag, root.attrib)
         chunk_elements = level2_elements[i * max_level2_per_chunk : (i + 1) * max_level2_per_chunk]
         
-        # Create copies of the elements instead of using references
-        for element in chunk_elements:
-            chunk_root.append(ET.fromstring(ET.tostring(element)))
-
-        chunk_tree = ET.ElementTree(chunk_root)
+        # Just write the raw XML content of the elements
         base = os.path.splitext(os.path.basename(input_file))[0]
         chunk_file = os.path.join(os.path.dirname(input_file), f"{base}_chunk{i}.xml")
-        chunk_tree.write(chunk_file, encoding="utf-8", xml_declaration=True)
+        
+        with open(chunk_file, 'w', encoding='utf-8') as f:
+            for element in chunk_elements:
+                # Write raw XML content without root wrapper
+                xml_string = ET.tostring(element, encoding='unicode')
+                f.write(xml_string)
+        
         chunk_files.append(chunk_file)
 
     return chunk_files
